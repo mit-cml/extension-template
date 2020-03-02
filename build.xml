@@ -142,7 +142,7 @@
     />
   </target>
 
-  <target name="extensions" depends="jarAllExtensions, dexAllExtensions">
+  <target name="extensions" depends="clean, jarAllExtensions, dexAllExtensions">
     <mkdir dir="${Extensions.dir}" />
     <foreach target="packExtension" param="extension" inheritall="true">
       <path>
