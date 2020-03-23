@@ -30,11 +30,15 @@
       <classpath>
         <pathelement location="lib/appinventor/AndroidRuntime.jar" />
         <pathelement location="lib/appinventor/AnnotationProcessors.jar" />
+        <pathelement location="lib/kawa/kawa-1.11-modified.jar" />
         <fileset dir="lib/android">
           <include name="*.jar" />
         </fileset>
         <fileset dir="lib/deps">
           <include name="*.jar" />
+        </fileset>
+		        <fileset dir="lib/deps">
+          <include name="*.aar" />
         </fileset>
       </classpath>
       <include name="**/*.java" />
@@ -77,6 +81,7 @@
     <unzip dest="build/externalComponents-classes/${extensionClassFolder}">
       <fileset dir="build/externalComponents-classes/${extensionClassFolder}">
         <include name="**/*.jar" />
+		        <include name="**/*.aar" />
       </fileset>
     </unzip>
   </target>
@@ -100,6 +105,9 @@
          basedir="${ExternalComponent-class.dir}/${extensionClassFolder}"
          includes="**/*.class"
          excludes="*.jar" />
+    <antcall target="ProGuard">
+      <param name="extensionClassFolder" value="${extensionClassFolder}" />
+    </antcall>
     <copy file="${ExternalComponent-class.dir}/${extensionClassFolder}.jar"
           tofile="${ExternalComponent.dir}/${extensionClassFolder}/files/AndroidRuntime.jar"/>
     <echo>Generated build file AndroidRuntime.jar [${extensionClassFolder}]</echo>
@@ -113,24 +121,31 @@
       <path>
         <fileset dir="${ExternalComponent-class.dir}" >
           <include name="*.jar"/>
-        </fileset>
-      </path>
+  </fileset>
+       <fileset dir="${ExternalComponent-class.dir}" >
+          <include name="*.aar"/>
+        </fileset> 
+ </path>
     </foreach>
   </target>
 
   <target name="dexExtension" depends="">
     <basename property="extensionType" file="${extension}" suffix=".jar"/>
-    <java jar="lib/android/dx.jar"
+    <java classname="com.android.tools.r8.D8"
           fork="true"
           failonerror="true">
-      <arg value="--dex"/>
-      <arg value="--no-strict"/>
+      <classpath>
+        <pathelement location="lib/android/d8.jar"/>
+      </classpath>
+<!--      TODO: add min api, android.jar lib, main dex list?-->
+      <arg value="--release"/>
       <arg value="--output"/>
       <arg value="${ExternalComponent.dir}/${extensionType}/classes.jar"/>
       <arg value="${ExternalComponent-class.dir}/${extensionType}.jar"/>
     </java>
     <echo>Dexing extension: ${extensionType}</echo>
   </target>
+
 
 
 
@@ -156,5 +171,44 @@
     </foreach>
   </target>
 
+  <!-- =====================================================================
+       ProGuard: obfuscates and minifies the AndroidRuntime.jar file, containing
+       the extensions source code. Only runs if the task has been called
+       like "ant extensions -Dproguard=1".
+       ===================================================================== -->
+
+  <condition property="skipProguard">
+    <not>
+      <equals arg1="${proguard}" arg2="1" />
+    </not>
+  </condition>
+
+  <target name="ProGuard" unless="skipProguard">
+    <taskdef resource="proguard/ant/task.properties"
+             classpath="lib/proguard/proguard.jar" />
+    <proguard printmapping="out/${extensionClassFolder}-proguard.map"
+              overloadaggressively="on"
+              configuration="lib/proguard/proguard.cfg"
+              ignorewarnings="false">
+
+      <injar  file="${ExternalComponent-class.dir}/${extensionClassFolder}.jar" />
+      <outjar file="${ExternalComponent-class.dir}/${extensionClassFolder}_p.jar" />
+
+      <libraryjar>
+        <fileset dir="lib">
+          <include name="**/*.jar"/>
+          <include name="**/*.aar"/>
+          <exclude name="*/d8.jar"/>
+        </fileset>
+      </libraryjar>
+
+      <dontnote filter="proguard.configuration.ConfigurationLogger" />
+      <adaptresourcefilecontents filter="proguard/ant/task.properties" />
+    </proguard>
+
+    <delete file="${ExternalComponent-class.dir}/${extensionClassFolder}.jar" />
+    <move file="${ExternalComponent-class.dir}/${extensionClassFolder}_p.jar"
+          tofile="${ExternalComponent-class.dir}/${extensionClassFolder}.jar" />
+  </target>
 
 </project>
