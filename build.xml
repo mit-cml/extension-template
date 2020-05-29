@@ -37,6 +37,9 @@
         <fileset dir="lib/deps">
           <include name="*.jar" />
         </fileset>
+		        <fileset dir="lib/deps">
+          <include name="*.aar" />
+        </fileset>
       </classpath>
       <include name="**/*.java" />
     </javac>
@@ -78,6 +81,7 @@
     <unzip dest="build/externalComponents-classes/${extensionClassFolder}">
       <fileset dir="build/externalComponents-classes/${extensionClassFolder}">
         <include name="**/*.jar" />
+		        <include name="**/*.aar" />
       </fileset>
     </unzip>
   </target>
@@ -117,24 +121,31 @@
       <path>
         <fileset dir="${ExternalComponent-class.dir}" >
           <include name="*.jar"/>
-        </fileset>
-      </path>
+  </fileset>
+       <fileset dir="${ExternalComponent-class.dir}" >
+          <include name="*.aar"/>
+        </fileset> 
+ </path>
     </foreach>
   </target>
 
   <target name="dexExtension" depends="">
     <basename property="extensionType" file="${extension}" suffix=".jar"/>
-    <java jar="lib/android/dx.jar"
+    <java classname="com.android.tools.r8.D8"
           fork="true"
           failonerror="true">
-      <arg value="--dex"/>
-      <arg value="--no-strict"/>
+      <classpath>
+        <pathelement location="lib/android/d8.jar"/>
+      </classpath>
+<!--      TODO: add min api, android.jar lib, main dex list?-->
+      <arg value="--release"/>
       <arg value="--output"/>
       <arg value="${ExternalComponent.dir}/${extensionType}/classes.jar"/>
       <arg value="${ExternalComponent-class.dir}/${extensionType}.jar"/>
     </java>
     <echo>Dexing extension: ${extensionType}</echo>
   </target>
+
 
 
 
@@ -187,7 +198,6 @@
         <fileset dir="lib">
           <include name="**/*.jar"/>
           <include name="**/*.aar"/>
-          <exclude name="*/dx.jar"/>
         </fileset>
       </libraryjar>
 
