@@ -198,7 +198,6 @@
         <fileset dir="lib">
           <include name="**/*.jar"/>
           <include name="**/*.aar"/>
-          <exclude name="*/d8.jar"/>
         </fileset>
       </libraryjar>
 
